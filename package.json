@@ -1,0 +1,1 @@
+{"name":"akihabara-mini-city","private":true,"type":"module","scripts":{"preview":"node tools/preview-server.cjs"}}
