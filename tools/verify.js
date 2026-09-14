@@ -4,6 +4,8 @@ import {createCamera} from '../src/camera.js';
 import {createWorld,constrainPosition,cellCenter,groundType,ELEVATION,DECK_THICKNESS,WIDTH,DEPTH,EDGE_MARGIN,ROAD_WIDTH,VIADUCT_WIDTH,SEA_EXTENSION} from '../src/map/world.js';
 import {createPlayer,PLAYER_SCALE} from '../src/player/player.js';
 import {layout} from '../src/map/layout.js';
+import {createCalibration,CAR,BUILDING,TRAIN} from '../src/map/calibration.js';
+import {SIDEWALK_WIDTH,CARRIAGEWAY_WIDTH,ROW_DEPTHS} from '../src/map/world.js';
 const results=[];
 function check(value,label){if(!value)throw new Error(label);results.push('PASS '+label);}
 const near=(a,b)=>Math.abs(a-b)<1e-6;
@@ -53,7 +55,15 @@ try{
   }
   clear();
   check(near(decks[0].geometry.parameters.width,VIADUCT_WIDTH)&&decks.slice(1,3).every(d=>near(d.geometry.parameters.depth,VIADUCT_WIDTH)),'equal vertical/horizontal viaduct width');
-  check(ROAD_WIDTH===4&&world.getObjectByName('sea:extension-north').geometry.parameters.depth===SEA_EXTENSION,'widened road and extended sea');
+  check(near(ROAD_WIDTH,4.6)&&world.getObjectByName('sea:extension-north').geometry.parameters.depth===SEA_EXTENSION,'widened road and unchanged sea extension');
+  check(near(SIDEWALK_WIDTH,.85)&&near(CARRIAGEWAY_WIDTH,2.9),'sidewalk / two lanes / sidewalk dimensions');
+  check(ROW_DEPTHS[12]===6.5&&ROW_DEPTHS[1]===6,'expanded plaza and beach');
+  check(world.children.filter(x=>x.name==='beach:access').length===2,'two paved beach approaches');
+  const samples=createCalibration(scene);
+  check(samples.children.length===3,'exactly one car, building and carriage');
+  check(CAR.width<CARRIAGEWAY_WIDTH/2&&TRAIN.width<VIADUCT_WIDTH,'car fits one lane; train fits both viaducts');
+  const trainBounds=new THREE.Box3().setFromObject(samples.getObjectByName('calibration-train'),true);
+  check(near(trainBounds.min.y,ELEVATION),'carriage rests on elevated surface');
   const realScene=new THREE.Scene(),player=await createPlayer(realScene,rig.camera);
   const realTanuki=realScene.getObjectByName('Tanuki_茶タヌキ全体');
   const size=new THREE.Box3().setFromObject(realTanuki,true).getSize(new THREE.Vector3());
@@ -67,10 +77,11 @@ try{
   clear();
   document.querySelector('#result').textContent=results.join('\n')+'\nALL PASS';
   createWorld(realScene);
+  createCalibration(realScene);
   realScene.background=new THREE.Color(0xe6e8e6);
   realScene.add(new THREE.HemisphereLight(0xf4f8ff,0xb5ada0,2.2));
   const light=new THREE.DirectionalLight(0xfff5e7,3);light.position.set(-15,30,20);realScene.add(light);
-  for(const [label,c,r] of [['駅の奥側',7,9],['高架下',6,6],['砂浜と海',7,1]]){
+  for(const [label,c,r] of [['車・入口・歩道の比較',9,13],['電車と高架',10,11],['砂浜と海',1,1]]){
     const target=cellCenter(c,r),placement=realScene.children.find(x=>x.getObjectByName('Tanuki_茶タヌキ全体'));
     placement.position.x+=target.x-player.position.x;placement.position.z+=target.z-player.position.z;player.update(0);
     const render=new THREE.WebGLRenderer({antialias:true});render.setSize(800,450);render.toneMapping=THREE.ACESFilmicToneMapping;render.toneMappingExposure=1.15;

@@ -4,15 +4,14 @@ import { layout } from './layout.js';
 export const CELL_SIZE = 2;
 export const ELEVATION = 2.6; // Track surface; all elevated pieces share this height.
 export const DECK_THICKNESS = 0.25;
-export const SIDEWALK_WIDTH = 0.85;
+export const SIDEWALK_WIDTH = 0.45;
 export const EDGE_MARGIN = 0.4;
-export const ROAD_WIDTH = 4.6;
-export const CARRIAGEWAY_WIDTH = ROAD_WIDTH - 2 * SIDEWALK_WIDTH;
+export const ROAD_WIDTH = 4;
 export const VIADUCT_WIDTH = 4;
 export const STATION_REAR_SPACE = 3;
 export const SEA_EXTENSION = 80;
-export const COLUMN_WIDTHS = [2,ROAD_WIDTH,2,2,2,2,2,2,2,2,2,2,ROAD_WIDTH,2];
-export const ROW_DEPTHS = [2,6,2,ROAD_WIDTH,2,2,2,2,2,ROAD_WIDTH+STATION_REAR_SPACE,4,3,6.5,ROAD_WIDTH,2];
+export const COLUMN_WIDTHS = [2,4,2,2,2,2,2,2,2,2,2,2,4,2];
+export const ROW_DEPTHS = [2,3,2,4,2,2,2,2,2,7,4,3,4,4,2];
 export const WIDTH = COLUMN_WIDTHS.reduce((a,b)=>a+b,0);
 export const DEPTH = ROW_DEPTHS.reduce((a,b)=>a+b,0);
 export const X_EDGES = [-WIDTH/2];
@@ -24,8 +23,6 @@ export function cellCenter(col, row) {
 }
 const elevated = new Set(['vertical', 'horizontal', 'station']);
 export function groundType(col, row) {
-  // Retain the central under-viaduct approach; add a northwest connection.
-  if (row === 2 && (col === 1 || col === 6 || col === 7)) return 'empty';
   const type = layout[row]?.[col];
   if (!elevated.has(type)) return type;
   // Excel hides the road beneath the elevated layer. Continue the existing
@@ -45,38 +42,9 @@ export function createWorld(scene) {
   const colors = {sea:0x93cfec,beach:0xe5cd9c,road:0x777f88,plot:0xcacdcf,supportPlot:0xa8d5ba,udxPlot:0xc1b2d5,yodobashiPlot:0xe7b2bd,plaza:0xf4e8be,fountainReserve:0xf4e8be,empty:0xf1f4f3};
   const materials = Object.fromEntries(Object.entries(colors).map(([k,color])=>[k,new THREE.MeshStandardMaterial({color,roughness:1})]));
   const sidewalk = new THREE.MeshStandardMaterial({color:0xe0e1dc,roughness:1});
-  const stripe = new THREE.MeshBasicMaterial({color:0xfff3d5});
   function box(w,h,d,x,y,z,material,name) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
     mesh.position.set(x,y,z); mesh.name=name; mesh.receiveShadow=true; group.add(mesh); return mesh;
-  }
-  // Mark two opposing lanes on the four continuous straight road sections.
-  // Leave corner junctions clear so the rectangular loop stays readable.
-  for (const row of [3,9,13]) {
-    const z=Z_EDGES[row]+ROAD_WIDTH/2;
-    for(let x=X_EDGES[2]+.5;x<X_EDGES[12]-.3;x+=1.6)
-      box(.8,.008,.045,x,.012,z,stripe,'road:center-line');
-    for(const direction of [-1,1]) {
-      const shape=new THREE.Shape();
-      shape.moveTo(-.5,-.07);shape.lineTo(.1,-.07);shape.lineTo(.1,-.23);
-      shape.lineTo(.5,0);shape.lineTo(.1,.23);shape.lineTo(.1,.07);shape.lineTo(-.5,.07);shape.closePath();
-      const arrow=new THREE.Mesh(new THREE.ShapeGeometry(shape),stripe);
-      arrow.rotation.set(-Math.PI/2,0,direction===1?0:Math.PI);
-      arrow.position.set(0,.018,z-direction*CARRIAGEWAY_WIDTH/4);
-      arrow.name='road:direction-arrow';group.add(arrow);
-    }
-  }
-  for(const col of [1,12]) {
-    const x=cellCenter(col,3).x;
-    for(let z=Z_EDGES[4]+.4;z<Z_EDGES[13]-.3;z+=1.6) {
-      if(z>=Z_EDGES[9] && z<Z_EDGES[9]+ROAD_WIDTH) continue;
-      box(.045,.008,.8,x,.012,z,stripe,'road:center-line');
-    }
-  }
-  // A flat paved connection, without extra objects or changing the Excel grid.
-  for(const [c1,c2] of [[1,1],[6,7]]) {
-    const w=X_EDGES[c2+1]-X_EDGES[c1];
-    box(w,.012,ROW_DEPTHS[2],(X_EDGES[c1]+X_EDGES[c2+1])/2,.006,cellCenter(c1,2).z,sidewalk,'beach:access');
   }
   for(let row=0;row<15;row++) for(let col=0;col<14;col++) {
     const p=cellCenter(col,row), type=groundType(col,row);
