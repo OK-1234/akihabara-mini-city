@@ -1,0 +1,42 @@
+import * as THREE from 'three';
+import {createStreetBlock} from '../src/map/street-block.js';
+import {BUILDING_VOLUMES} from '../src/map/building-volumes.js';
+import {createWorld,X_EDGES,Z_EDGES,ELEVATION} from '../src/map/world.js';
+import {createPlayer} from '../src/player/player.js';
+import {createCamera} from '../src/camera.js';
+try {
+ const out=[],check=(ok,label)=>{if(!ok)throw Error(label);out.push('PASS '+label);};
+ const scene=new THREE.Scene();createWorld(scene);const block=await createStreetBlock(scene);
+ scene.updateMatrixWorld(true);
+ for(const b of BUILDING_VOLUMES){const m=block.volumes.group.getObjectByName(b.id),p=m.geometry.parameters;
+   check(p.width===b.width&&p.depth===b.depth&&p.height===b.height,b.id+' dimensions unchanged');
+   if(!b.id.startsWith('general-east-'))check(m.position.x===b.x&&m.position.z===b.z,b.id+' position unchanged');
+ }
+ const a=new THREE.Box3().setFromObject(block.volumes.group.getObjectByName('general-east-west'));
+ const b=new THREE.Box3().setFromObject(block.volumes.group.getObjectByName('general-east-east'));
+ check(Math.abs(b.min.x-a.max.x-1)<1e-6,'1.0 passage between buildings');
+ const detailBounds=new THREE.Box3().setFromObject(block.details);
+ check(detailBounds.min.x>=X_EDGES[9]&&detailBounds.max.x<=X_EDGES[12]&&detailBounds.min.z>=Z_EDGES[11]&&detailBounds.max.z<Z_EDGES[13],'details stay in east plot, road/sidewalk clear');
+ check(!scene.getObjectByName('H8:I15 縦高架')&&!scene.getObjectByName('B16:F16 横高架')&&!scene.getObjectByName('K16:O16 横高架'),'old width-4 viaducts removed on this page');
+ const vi=block.viaduct.root;
+ check(vi.getObjectByName('vertical-deck-3').geometry.parameters.width===3&&vi.getObjectByName('horizontal-deck-3').geometry.parameters.depth===3,'vertical and horizontal width 3.0');
+ check(Math.abs(block.viaduct.openingEnd-block.viaduct.openingStart-1.2)<1e-6,'west sea-end stair opening 1.2 retained');
+ check(block.volumes.deck.source.measurements.scale===.95&&block.volumes.deck.source.sedan.measurements.scale===.8,'train .95 and sedan .80');
+ check(block.volumes.deck.textured&&block.volumes.deck.source.measurements.textured,'rail/train textures');
+ const train=new THREE.Box3().setFromObject(block.volumes.deck.source.placement,true);
+ check(train.min.x>-1.46&&train.max.x<1.46&&Math.abs(train.min.y-block.volumes.deck.railTop)<1e-5,'train within viaduct and on rail top');
+ const rig=createCamera(),player=await createPlayer(scene,rig.camera);
+ const actor=scene.children.find(o=>o.getObjectByName('Tanuki_茶タヌキ全体'));
+ actor.position.x+=7-player.position.x;actor.position.z+=20-player.position.z;player.update(0);
+ const key=(type,key)=>window.dispatchEvent(new KeyboardEvent(type,{key}));
+ key('keydown','ArrowLeft');for(let i=0;i<40;i++)player.update(.05);key('keyup','ArrowLeft');
+ check(Math.abs(player.position.z-14)<1e-5&&Math.abs(player.position.x-7)<1e-5,'normal walk 3.0 through passage to rear pocket');
+ key('keydown','ArrowLeft');for(let i=0;i<5;i++)player.update(.05);
+ const z=player.position.z;key('keydown','ArrowRight');key('keyup','ArrowLeft');for(let i=0;i<5;i++)player.update(.05);key('keyup','ArrowRight');
+ check(Math.abs(player.position.z-z-1.2)<1e-5,'dash 4.8 continues after turn');
+ scene.background=new THREE.Color(0xe6e8e6);scene.add(new THREE.HemisphereLight(0xf4f8ff,0xb5ada0,2.2));
+ const sun=new THREE.DirectionalLight(0xfff5e7,3);sun.position.set(-15,30,20);scene.add(sun);
+ const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(1000,650);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+ rig.resize(1000,650);rig.follow(player.position);renderer.render(scene,rig.camera);document.body.append(renderer.domElement);
+ document.querySelector('#result').textContent=out.join('\n')+'\nALL PASS';
+}catch(e){document.querySelector('#result').textContent='FAIL '+e.stack;}
