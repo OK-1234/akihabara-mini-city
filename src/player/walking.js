@@ -36,6 +36,7 @@ export function createWalking(model, camera, worldScale = 1) {
   const swing = new THREE.Quaternion();
   const swingAxis = new THREE.Vector3(1, 0, 0);
   let phase = 0;
+  let enabled = true;
 
   function rest() {
     phase = 0;
@@ -50,6 +51,7 @@ export function createWalking(model, camera, worldScale = 1) {
     rest();
   }
   window.addEventListener('keydown', (event) => {
+    if (!enabled) return;
     if (!arrows.has(event.key)) return;
     event.preventDefault();
     if (event.repeat || pressed.has(event.key)) return;
@@ -76,7 +78,9 @@ export function createWalking(model, camera, worldScale = 1) {
   });
 
   return {
+    setEnabled(value) { enabled=value; clear(); },
     update(dt) {
+      if (!enabled) return;
       // 同時押しは最後に押した方向を優先し、斜め移動を加えない。
       const key = Array.from(pressed).at(-1);
       if (!key) return;

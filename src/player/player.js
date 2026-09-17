@@ -32,5 +32,14 @@ export async function createPlayer(scene,camera) {
     tanuki.getWorldPosition(position);
   }
   update(0);
-  return {update,position,height:bounds.max.y-bounds.min.y};
+  return {update,position,height:bounds.max.y-bounds.min.y,model,tanuki,
+    setWalking(enabled) { walking.setEnabled(enabled); },
+    setVisible(visible) { placement.visible=visible; },
+    setPosition(target) {
+      tanuki.getWorldPosition(position);
+      placement.position.x+=target.x-position.x;
+      placement.position.z+=target.z-position.z;
+      placement.updateMatrixWorld(true);tanuki.getWorldPosition(position);
+    },
+  };
 }
