@@ -52,6 +52,12 @@ try {
  check(arch&&arch.children.filter(o=>o.name==='arch-rib').length===3&&arch.getObjectByName('light-arch-shell').material.opacity<1,'light station arch above junction');
  check(new Set(city.root.children.map(g=>g.userData.roofPattern).filter(Boolean)).size===6,'six roof planting patterns including no planting');
  check(city.greenery.children.length===8,'four trees and four low planters distributed');
+ check(city.finish.children.filter(o=>o.name==='plaza-bench').length===2,'two plaza benches only');
+ check(city.finish.children.filter(o=>o.name==='crosswalk').length===7,'seven selected crossings');
+ check(city.finish.children.filter(o=>o.name==='plaza-lamp').length===5,'five lamps including three added on sidewalk edges');
+ check(city.finish.children.filter(o=>o.name==='pedestrian-stone-paving').length>20,'rectangular paving on existing pedestrian surfaces');
+ check(city.finish.getObjectByName('curved-ivory-beach')&&city.finish.getObjectByName('rounded-junction-curb'),'curved shore and junction curb');
+ check(city.root.getObjectByName('commercial-roof-garden'),'unified commercial roof garden');
  document.querySelector('#result').textContent=out.join('\n')+'\nALL PASS';
  if(new URLSearchParams(location.search).has('views')) {
   scene.background=new THREE.Color(0xe6e8e6);scene.add(new THREE.HemisphereLight(0xf4f8ff,0xb5ada0,2.2));
@@ -61,7 +67,7 @@ try {
   const gallery=document.createElement('div');gallery.style.cssText='display:grid;grid-template-columns:repeat(2,620px);gap:8px';
   document.querySelector('#result').textContent='ALL PASS · 本番と同じ角度・表示高さでのランドマーク確認';document.body.append(gallery);
   const actor=scene.children.find(o=>o.getObjectByName('Tanuki_茶タヌキ全体'));
-  for(const [label,x,z] of [['ヨドバシ風',11,-5],['UDX風',-8.1,-1],['就労移行支援',-8.2,-12.4],['駅アーチ',0,3.4]]) {
+  for(const [label,x,z] of [['ヨドバシ風',8,-3.5],['駅前広場',0,17],['海岸線',0,-22],['交差点',11,-.7]]) {
    actor.position.x+=x-player.position.x;actor.position.z+=z-player.position.z;player.update(0);rig.follow(player.position);
    renderer.render(scene,rig.camera);
    const section=document.createElement('div'),caption=document.createElement('div'),canvas=document.createElement('canvas');

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {finishCity} from './city-finish.js';
 import {BUILDING_VOLUMES,createBuildingVolumes} from './building-volumes.js';
 import {createConfirmedViaduct} from './confirmed-viaduct.js';
 import {decorateCityBuildings} from './clean-buildings-test.js';
@@ -59,5 +60,6 @@ export async function createCity(scene) {
   // Landmark plot colours were allocation markers, not the adopted streetscape.
   const paving=new THREE.MeshStandardMaterial({color:0xd3d6d4,roughness:1});
   for(const object of world.children)if(/:(supportPlot|udxPlot|yodobashiPlot)$/.test(object.name))object.material=paving;
-  return {root,boxes,viaduct,volumes,greenery};
+  const finish=finishCity(scene);
+  return {root,boxes,viaduct,volumes,greenery,finish};
 }

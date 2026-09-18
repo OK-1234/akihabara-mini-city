@@ -30,29 +30,31 @@ function roofGarden(group,b,pattern) {
   if(pattern==='E')bed(.32,Math.min(.48,d*.35),-w/2+.28,d*.24);
 }
 
-function roundedVolume(group,w,d,h,y,color,name) {
-  const s=new THREE.Shape(),r=.35,x=-w/2,z=-d/2;
+function roundedVolume(group,w,d,h,y,color,name,r=.35) {
+  const s=new THREE.Shape(),x=-w/2,z=-d/2;
   s.moveTo(x+r,z);s.lineTo(x+w-r,z);s.quadraticCurveTo(x+w,z,x+w,z+r);
   s.lineTo(x+w,z+d-r);s.quadraticCurveTo(x+w,z+d,x+w-r,z+d);
   s.lineTo(x+r,z+d);s.quadraticCurveTo(x,z+d,x,z+d-r);
   s.lineTo(x,z+r);s.quadraticCurveTo(x,z,x+r,z);
-  const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:false,curveSegments:4});g.rotateX(-Math.PI/2);
-  const m=new THREE.Mesh(g,mat(color));m.position.y=y;m.name=name;m.castShadow=true;m.receiveShadow=true;group.add(m);
+  const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:false,curveSegments:12});g.rotateX(-Math.PI/2);
+  const m=new THREE.Mesh(g,mat(color));m.position.y=y;m.name=name;m.castShadow=true;m.receiveShadow=true;group.add(m);return m;
 }
 
 function commercial(group,b) {
-  roundedVolume(group,b.width,b.depth,2.3,0,0xd4d8d6,'commercial-lower');
-  roundedVolume(group,b.width-.5,b.depth-.7,b.height-2.3,2.3,0xe3e6e2,'commercial-upper');
-  for(const y of [2.30,4.45])roundedVolume(group,b.width-.38,b.depth-.58,.12,y,GRAY,'commercial-belt');
-  // Sparse recessed-looking bands, not an office curtain wall.
-  for(const sign of [-1,1]) {
-    box(group,.025,.32,b.depth-1.6,sign*(b.width-.5)/2,3.55,0,0x8d9ea4,'commercial-window');
-    box(group,3.4,1.45,.035,0,.725,sign*(b.depth/2-.015),0x718e9e,'commercial-entrance');
-  }
-  box(group,.035,1.45,3.8,b.width/2-.015,.725,1,0x718e9e,'commercial-east-entrance');
-  box(group,.40,.15,4.5,b.width/2-.04,1.7,1,WHITE,'commercial-canopy');
-  box(group,1.1,.35,1.25,.5,b.height+.175,-1.5,WHITE,'commercial-roof-unit');
-  roofGarden(group,{...b,width:b.width-.7,depth:b.depth-.9},'B');
+  // Keep the footprint and total height; the taller lower storey carries the upper pavilion.
+  const lower=3.5,r=1.55;
+  roundedVolume(group,b.width,b.depth,lower,0,0xaab7c0,'commercial-lower',r);
+  roundedVolume(group,b.width-.5,b.depth-.7,b.height-lower,lower,0xbdc7cd,'commercial-upper',r-.15);
+  for(const y of [lower,b.height-.14])roundedVolume(group,b.width-.44,b.depth-.64,.12,y,GRAY,'commercial-belt',r-.12);
+  // Curved glazing ribbons follow the rounded envelope, including the corners.
+  for(const [y,h,w,d] of [[1.0,1.1,b.width+.015,b.depth+.015],[4.35,.45,b.width-.485,b.depth-.685]])
+    roundedVolume(group,w,d,h,y,0x5799af,'commercial-glass-ribbon',r);
+  roundedVolume(group,b.width-.85,b.depth-1.08,.11,b.height+.02,0x94b68d,'commercial-roof-garden',1.35);
+  // A single garden, crossed by a quiet pale path, with irregular low planting islands.
+  box(group,.46,.025,b.depth-1.6,.3,b.height+.14,0,0xdde2d9,'garden-path');
+  for(const [x,z,w,d] of [[-1.05,-2.5,1.1,1.5],[.95,2.4,.75,1.1],[-.9,1.1,.9,1.8]])
+    roundedVolume(group,w,d,.15,b.height+.13,0x7eaa80,'garden-shrub',.32).position.set(x,b.height+.13,z);
+  box(group,.75,.3,.85,.95,b.height+.15,-2.75,WHITE,'commercial-roof-unit');
 }
 
 function tower(group,b) {
@@ -101,6 +103,7 @@ export function applyCityAppearance(root,bodies,configs,scene) {
       body.visible=false;details.removeFromParent();
       if(b.id==='udx')tower(group,b);else commercial(group,b);return;
     }
+    body.material=mat([0xe8ecec,0xcdd7dd,0xdedfd8,0xf0efea,0xbfcdd4][i%5]);
     const variant=i%3,factor=[.80,1,.68][variant];
     const panes=details.children.filter(m=>m.name.endsWith('-window')||['wide-entrance','street-entrance-glazing'].includes(m.name));
     const frames=details.children.filter(m=>m.name==='glazing-frame');

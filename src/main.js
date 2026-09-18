@@ -55,7 +55,7 @@ try {
   const transformation=city?createCarTransformation(scene,player,rig.camera,city.volumes.deck.source.sedan.placement):null;
   densityTest?.spawnPlayer(player);
   const deckWalk=deckTest?.mountPlayer(player);
-  document.querySelector('#status').textContent='広場からスタート · 海と砂浜は地図の上端';
+  document.querySelector('#status').textContent='';
   if(['buildings','block','density','clean-buildings'].includes(document.body.dataset.comparison)) document.querySelector('#status').textContent='';
   console.info('街の骨格 試作3号・縮尺校正', {tanukiHeight:player.height,walkSpeed:3,dashSpeed:4.8});
   let previous;
