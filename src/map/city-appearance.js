@@ -30,14 +30,54 @@ function roofGarden(group,b,pattern) {
   if(pattern==='E')bed(.32,Math.min(.48,d*.35),-w/2+.28,d*.24);
 }
 
-function roundedVolume(group,w,d,h,y,color,name,r=.35) {
+function roundedOutline(w,d,r) {
   const s=new THREE.Shape(),x=-w/2,z=-d/2;
   s.moveTo(x+r,z);s.lineTo(x+w-r,z);s.quadraticCurveTo(x+w,z,x+w,z+r);
   s.lineTo(x+w,z+d-r);s.quadraticCurveTo(x+w,z+d,x+w-r,z+d);
   s.lineTo(x+r,z+d);s.quadraticCurveTo(x,z+d,x,z+d-r);
   s.lineTo(x,z+r);s.quadraticCurveTo(x,z,x+r,z);
+  return s;
+}
+
+function roundedVolume(group,w,d,h,y,color,name,r=.35) {
+  const s=roundedOutline(w,d,r);
   const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:false,curveSegments:12});g.rotateX(-Math.PI/2);
   const m=new THREE.Mesh(g,mat(color));m.position.y=y;m.name=name;m.castShadow=true;m.receiveShadow=true;group.add(m);return m;
+}
+
+// Surface details only: follow the existing quadratic corners without changing the shell.
+function commercialFacade(group,b,lower,r) {
+  for(const [w,d,h,y,radius,tier] of [
+    [b.width,b.depth,lower,0,r,'lower'],
+    [b.width-.5,b.depth-.7,b.height-lower,lower,r-.15,'upper'],
+  ]) {
+    const outline=roundedOutline(w,d,radius);
+    const count=Math.round(outline.getLength()/.58);
+    for(let i=0;i<count;i++) {
+      const p=outline.getPointAt((i+.5)/count),t=outline.getTangentAt((i+.5)/count);
+      const rib=box(group,.075,h-.22,.035,p.x+t.y*.012,y+h/2,-p.y+t.x*.012,0xd0d7da,`commercial-${tier}-rib`);
+      rib.rotation.y=Math.atan2(t.y,t.x);
+    }
+  }
+  // A few quiet, fictional banners on the lower straight facades; no text or logos.
+  const banners=[
+    [-b.width/2,-2.35,-Math.PI/2,0xe8eeeb,0x789ca7,0],
+    [-b.width/2,0,-Math.PI/2,0x52636b,0xd9e6e7,1],
+    [-b.width/2,2.35,-Math.PI/2,0xb4cbd5,0xf0f1e9,2],
+    [b.width/2,-1.6,Math.PI/2,0xc4d5c4,0x637f8a,2],
+    [b.width/2,1.6,Math.PI/2,0xe7e4da,0x809daa,0],
+    [0,b.depth/2,0,0xdbe6e9,0x607985,1],
+  ];
+  for(const [i,[x,z,angle,color,ink,design]] of banners.entries()) {
+    const banner=new THREE.Group();banner.name=`commercial-banner-${i}`;
+    banner.position.set(x+Math.sin(angle)*.045,1.91,z+Math.cos(angle)*.045);
+    banner.rotation.y=angle;group.add(banner);
+    box(banner,.63,2.12,.025,0,0,0,color,'banner-cloth');
+    const mark=box(banner,design===1?.23:.33,design===2?.48:.33,.012,0,.46,.022,ink,'banner-fictional-mark');
+    if(design===1)mark.rotation.z=Math.PI/4;
+    for(let j=0;j<3;j++)box(banner,j===2?.23:.40,.045,.012,j===2?-.085:0,-.15-j*.18,.022,ink,'banner-short-line');
+    box(banner,.69,.045,.055,0,1.07,0,GRAY,'banner-mount');
+  }
 }
 
 function commercial(group,b) {
@@ -46,15 +86,13 @@ function commercial(group,b) {
   roundedVolume(group,b.width,b.depth,lower,0,0xaab7c0,'commercial-lower',r);
   roundedVolume(group,b.width-.5,b.depth-.7,b.height-lower,lower,0xbdc7cd,'commercial-upper',r-.15);
   for(const y of [lower,b.height-.14])roundedVolume(group,b.width-.44,b.depth-.64,.12,y,GRAY,'commercial-belt',r-.12);
-  // Curved glazing ribbons follow the rounded envelope, including the corners.
-  for(const [y,h,w,d] of [[1.0,1.1,b.width+.015,b.depth+.015],[4.35,.45,b.width-.485,b.depth-.685]])
-    roundedVolume(group,w,d,h,y,0x5799af,'commercial-glass-ribbon',r);
   roundedVolume(group,b.width-.85,b.depth-1.08,.11,b.height+.02,0x94b68d,'commercial-roof-garden',1.35);
   // A single garden, crossed by a quiet pale path, with irregular low planting islands.
   box(group,.46,.025,b.depth-1.6,.3,b.height+.14,0,0xdde2d9,'garden-path');
   for(const [x,z,w,d] of [[-1.05,-2.5,1.1,1.5],[.95,2.4,.75,1.1],[-.9,1.1,.9,1.8]])
     roundedVolume(group,w,d,.15,b.height+.13,0x7eaa80,'garden-shrub',.32).position.set(x,b.height+.13,z);
   box(group,.75,.3,.85,.95,b.height+.15,-2.75,WHITE,'commercial-roof-unit');
+  commercialFacade(group,b,lower,r);
 }
 
 function tower(group,b) {

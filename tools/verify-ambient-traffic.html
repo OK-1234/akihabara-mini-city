@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><title>一般車確認</title><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script><pre id="result">確認中</pre><script type="module">
+import * as THREE from 'three';import {createAmbientTraffic,TRAFFIC_SPEED} from '../src/map/ambient-traffic.js';import {createWorld,cellCenter,Z_EDGES,ROAD_WIDTH,CARRIAGEWAY_WIDTH} from '../src/map/world.js';import {createCity} from '../src/map/city.js';import {createCamera} from '../src/camera.js';
+try{
+const out=[],check=(ok,s)=>{if(!ok)throw Error(s);out.push('PASS '+s);};const scene=new THREE.Scene();createWorld(scene);const city=await createCity(scene),sedan=city.volumes.deck.source.sedan.placement,saved=sedan.matrix.clone();const traffic=await createAmbientTraffic(scene);
+check(traffic.cars.length===3&&new Set(traffic.cars.map(c=>c.object.name)).size===3,'SUV / taxi / police, exactly one each');check(TRAFFIC_SPEED>.85&&TRAFFIC_SPEED<5,'constant speed between crawl and standard');
+const left=cellCenter(1,3).x,right=cellCenter(12,3).x,roads=[3,9,13].map(r=>Z_EDGES[r]+ROAD_WIDTH/2),half=CARRIAGEWAY_WIDTH/2;
+const asphalt=(x,z)=>((Math.abs(x-left)<=half+.005||Math.abs(x-right)<=half+.005)&&z>=roads[0]-half&&z<=roads[2]+half)||(roads.some(r=>Math.abs(z-r)<=half+.005)&&x>=left-half&&x<=right+half);
+for(const c of traffic.cars){
+let textures=0;c.object.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])if(m.map?.image?.width)textures++;});check(textures>0,c.object.name+' texture loaded');
+for(let i=0;i<1800;i++){
+ const d=c.route.length*i/1800,p=c.route.point(d),t=c.route.tangent(d),angle=Math.atan2(t.x,t.z),co=Math.cos(angle),si=Math.sin(angle);
+ for(let ix=-2;ix<=2;ix++)for(let iz=-4;iz<=4;iz++){const x=ix*c.size.x/4,z=iz*c.size.z/8;check(asphalt(p.x+x*co+z*si,p.z-x*si+z*co),c.object.name+' body outside roadway at '+i+' size '+c.size.toArray()+' position '+p.toArray()+' sample '+[p.x+x*co+z*si,p.z-x*si+z*co]);out.pop();}
+ if(Math.abs(t.x)>.999999){const road=roads.reduce((a,b)=>Math.abs(b-p.z)<Math.abs(a-p.z)?b:a);check(Math.abs((p.z-road)*-t.x-CARRIAGEWAY_WIDTH/4)<.01,'horizontal left lane');out.pop();}if(Math.abs(t.z)>.999999){const road=Math.abs(p.x-left)<Math.abs(p.x-right)?left:right;check(Math.abs((p.x-road)*t.z-CARRIAGEWAY_WIDTH/4)<.01,'vertical left lane');out.pop();}const ahead=c.route.tangent(d+.025);check(t.dot(ahead)>.99,'continuous corner heading');out.pop();
+}
+check(c.route.point(0).distanceTo(c.route.point(c.route.length))<1e-6,c.object.name+' left lanes / closed smooth route / entire footprint on roadway');
+const p=c.route.point(c.route.length*.05),t=c.route.tangent(c.route.length*.05);check(c.route.clockwise?t.z<0:t.x>0,c.object.name+' travel direction');
+out.push(c.object.name+' dimensions '+c.size.toArray().map(n=>n.toFixed(3)).join(' / '));
+}
+let minSpread=Infinity;for(let i=0;i<10000;i++){traffic.update(.05);const p=traffic.cars.map(c=>c.object.position);minSpread=Math.min(minSpread,Math.max(p[0].distanceTo(p[1]),p[1].distanceTo(p[2]),p[2].distanceTo(p[0])));}check(minSpread>4,'three cars remain dispersed over 500 seconds');check(sedan.matrix.equals(saved)&&sedan.visible,'transformation sedan unchanged');
+scene.background=new THREE.Color(0xe6e8e6);scene.add(new THREE.HemisphereLight(0xf4f8ff,0xb5ada0,2.2));const sun=new THREE.DirectionalLight(0xfff5e7,3);sun.position.set(-15,30,20);scene.add(sun);const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(440,330);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;const rig=createCamera();rig.resize(440,330);
+for(const c of traffic.cars){let distance=0,error=Infinity;const targetZ=roads[c.route.area==='upper'?0:2];for(let i=0;i<1000;i++){const d=c.route.length*i/1000,p=c.route.point(d),e=p.x*p.x+(p.z-targetZ)**2;if(e<error){error=e;distance=d;}}c.object.position.copy(c.route.point(distance));const t=c.route.tangent(distance);c.object.rotation.y=Math.atan2(t.x,t.z);rig.follow(c.object.position);renderer.render(scene,rig.camera);const canvas=document.createElement('canvas');canvas.width=440;canvas.height=330;canvas.getContext('2d').drawImage(renderer.domElement,0,0);document.body.append(canvas);}document.querySelector('#result').textContent=out.join('\n');
+}catch(e){document.querySelector('#result').textContent='FAIL '+e.stack;}
+</script>
+
+
+
+

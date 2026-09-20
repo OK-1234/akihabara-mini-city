@@ -15,6 +15,7 @@ import { createCamera } from './camera.js';
 import { createPlayer } from './player/player.js';
 import { createSupportArrival } from './player/support-arrival.js';
 import { createCarTransformation } from './player/car-transformation.js';
+import { createAmbientTraffic } from './map/ambient-traffic.js';
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0xe6e8e6);
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -53,6 +54,7 @@ function resize(){renderer.setSize(innerWidth,innerHeight);rig.resize(innerWidth
 window.addEventListener('resize',resize);resize();
 try {
   const player=await createPlayer(scene,rig.camera);
+  const traffic=city?await createAmbientTraffic(scene):null;
   const transformation=city?createCarTransformation(scene,player,rig.camera,city.volumes.deck.source.sedan.placement):null;
   const arrival=city?createSupportArrival(scene,player,rig.camera,city.root.getObjectByName('support'),transformation):null;
   densityTest?.spawnPlayer(player);
@@ -61,6 +63,6 @@ try {
   if(['buildings','block','density','clean-buildings'].includes(document.body.dataset.comparison)) document.querySelector('#status').textContent='';
   console.info('街の骨格 試作3号・縮尺校正', {tanukiHeight:player.height,walkSpeed:3,dashSpeed:4.8});
   let previous;
-  renderer.setAnimationLoop(time=>{const dt=previous===undefined?0:Math.min((time-previous)/1000,.05);previous=time;player.update(dt);if(!arrival?.active)transformation?.update(dt);arrival?.update(dt);deckWalk?.update();if(!arrival?.active)rig.follow(player.position,dt,!!transformation&&transformation.mode!=='walk');if(deckWalk)rig.camera.position.y+=deckWalk.cameraLift;renderer.render(scene,rig.camera);});
+  renderer.setAnimationLoop(time=>{const dt=previous===undefined?0:Math.min((time-previous)/1000,.05);previous=time;player.update(dt);traffic?.update(dt);if(!arrival?.active)transformation?.update(dt);arrival?.update(dt);deckWalk?.update();if(!arrival?.active)rig.follow(player.position,dt,!!transformation&&transformation.mode!=='walk');if(deckWalk)rig.camera.position.y+=deckWalk.cameraLift;renderer.render(scene,rig.camera);});
 } catch(error) {document.querySelector('#status').textContent='読み込みに失敗しました。ページを再読み込みしてください。';console.error(error);}
 
