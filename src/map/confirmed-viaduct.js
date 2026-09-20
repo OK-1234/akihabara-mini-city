@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ELEVATION, X_EDGES, Z_EDGES } from './world.js';
 import { DECK_WIDTH, WALL_THICKNESS, OPENING_LENGTH } from './deck-test.js';
+import {createViaductTrains} from './train-formations.js';
 
 // Reuse the tested deck materials, track instances, train and dimensions.
 // Only the new block preview replaces the old translucent width-4 viaducts.
@@ -53,10 +54,8 @@ export function createConfirmedViaduct(scene, tested) {
   wall(false,junction-side,DECK_WIDTH/2,east,'north-wall-east');
   wall(false,junction+side,west,east,'south-wall');
   rails(true,0,north,junction);rails(false,junction,west,east);
-  const train=tested.source.placement;
-  // Same carriage, same uniform .95 and rail-top height, now on the map viaduct.
-  train.removeFromParent();root.add(train);train.position.z=(north+joinNorth)/2;
+  const trains=createViaductTrains(root,tested.source.placement,tested.railTop,{north,joinNorth,junction,west,east});
   tested.group.removeFromParent();
   scene.updateMatrixWorld(true);
-  return {root,openingStart,openingEnd,margin:tested.margin};
+  return {root,openingStart,openingEnd,margin:tested.margin,trains};
 }

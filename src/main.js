@@ -63,6 +63,7 @@ try {
   if(['buildings','block','density','clean-buildings'].includes(document.body.dataset.comparison)) document.querySelector('#status').textContent='';
   console.info('街の骨格 試作3号・縮尺校正', {tanukiHeight:player.height,walkSpeed:3,dashSpeed:4.8});
   let previous;
-  renderer.setAnimationLoop(time=>{const dt=previous===undefined?0:Math.min((time-previous)/1000,.05);previous=time;player.update(dt);traffic?.update(dt);if(!arrival?.active)transformation?.update(dt);arrival?.update(dt);deckWalk?.update();if(!arrival?.active)rig.follow(player.position,dt,!!transformation&&transformation.mode!=='walk');if(deckWalk)rig.camera.position.y+=deckWalk.cameraLift;renderer.render(scene,rig.camera);});
+  renderer.setAnimationLoop(time=>{const dt=previous===undefined?0:Math.min((time-previous)/1000,.05);previous=time;player.update(dt);traffic?.update(dt);city?.viaduct.trains.update(dt);if(!arrival?.active)transformation?.update(dt);arrival?.update(dt);deckWalk?.update();if(!arrival?.active)rig.follow(player.position,dt,!!transformation&&transformation.mode!=='walk');if(deckWalk)rig.camera.position.y+=deckWalk.cameraLift;renderer.render(scene,rig.camera);});
 } catch(error) {document.querySelector('#status').textContent='読み込みに失敗しました。ページを再読み込みしてください。';console.error(error);}
+
 
