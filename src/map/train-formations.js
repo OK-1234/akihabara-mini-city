@@ -28,10 +28,18 @@ function shuttle(formation,axis,fixed,start,end,phase,role) {
   formation.root.rotation.y=axis==='x'?Math.PI/2:0;
   formation.root.position[axis==='x'?'z':'x']=fixed;
   formation.root.userData.role=role;
-  let angle=phase;
-  function update(dt){angle=(angle+dt*1.6/radius)%(Math.PI*2);formation.root.position[axis]=middle+radius*Math.sin(angle);}
+  let angle=phase,restartTime=.8;
+  function resume(direction=1){
+    const base=Math.asin(THREE.MathUtils.clamp((formation.root.position[axis]-middle)/radius,-1,1));
+    angle=direction<0?Math.PI-base:base;restartTime=0;
+  }
+  function update(dt){
+    restartTime=Math.min(.8,restartTime+dt);
+    const t=restartTime/.8,ramp=t*t*(3-2*t);
+    angle=(angle+dt*1.6/radius*ramp)%(Math.PI*2);formation.root.position[axis]=middle+radius*Math.sin(angle);
+  }
   update(0);
-  return {...formation,axis,min,max,role,update};
+  return {...formation,axis,min,max,role,update,resume};
 }
 
 export function createViaductTrains(root,template,railTop,{north,joinNorth,junction,west,east}) {
