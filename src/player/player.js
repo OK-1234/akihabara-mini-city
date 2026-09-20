@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createTanukiArrivalPose } from './tanuki-arrival-pose.js';
 import { createWalking } from './walking.js';
 import { cellCenter, constrainPosition } from '../map/world.js';
 export const PLAYER_SCALE = 0.45;
@@ -11,7 +12,13 @@ export async function createPlayer(scene,camera) {
   // Preserve the authored hierarchy/scale, excluding the GLB test floor.
   model.traverse(object=>{
     if(object.isLight || object.name.startsWith('Ground_')) object.visible=false;
-    if(object.isMesh) {object.castShadow=true;object.receiveShadow=true;}
+    if(object.isMesh) {
+      object.castShadow=true;object.receiveShadow=true;
+      for(const material of (Array.isArray(object.material)?object.material:[object.material])) {
+        // The authored face screen is glossier than the fur; soften its highlight at every angle.
+        if(material.name==='TANUKI_01_screen')material.roughness=.9;
+      }
+    }
   });
   const placement=new THREE.Group(); placement.add(model); scene.add(placement);
   placement.scale.setScalar(PLAYER_SCALE);
@@ -32,7 +39,7 @@ export async function createPlayer(scene,camera) {
     tanuki.getWorldPosition(position);
   }
   update(0);
-  return {update,position,height:bounds.max.y-bounds.min.y,model,tanuki,
+  return {createArrivalPose(){return createTanukiArrivalPose({model,tanuki});},update,position,height:bounds.max.y-bounds.min.y,model,tanuki,
     setWalking(enabled) { walking.setEnabled(enabled); },
     setVisible(visible) { placement.visible=visible; },
     setPosition(target) {
