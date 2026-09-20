@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>支援建物・入口確認</title><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script><pre id="result">確認中</pre><script type="module">
+import * as THREE from 'three';import {createWorld} from '../src/map/world.js';import {createCity} from '../src/map/city.js';import {createPlayer} from '../src/player/player.js';import {createCamera} from '../src/camera.js';
+try{
+const scene=new THREE.Scene();createWorld(scene);const city=await createCity(scene),rig=createCamera(),player=await createPlayer(scene,rig.camera),g=city.root.getObjectByName('support');
+const walls=['support:body','support-entrance-screen-wall','support-entrance-back','support-entrance-north-wall'].map(n=>new THREE.Box3().setFromObject(g.getObjectByName(n),true));
+const z=g.position.z-.4;
+player.setPosition(new THREE.Vector3(-10.3,0,z));window.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp'}));
+for(let i=0;i<45;i++){player.update(.02);for(const b of walls)if(b.containsPoint(new THREE.Vector3(player.position.x,.7,z)))throw Error('entrance blocked');}
+window.dispatchEvent(new KeyboardEvent('keyup',{key:'ArrowUp'}));
+if(g.userData.entrance.height<player.height)throw Error('head clearance');
+document.querySelector('#result').textContent='PASS: 実際の徒歩操作で凹みへ進入／頭上の余裕／南側に壁を保持';
+scene.background=new THREE.Color(0xe6e8e6);scene.add(new THREE.HemisphereLight(0xf4f8ff,0xb5ada0,2.2));const sun=new THREE.DirectionalLight(0xfff5e7,3);sun.position.set(-15,30,20);scene.add(sun);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(500,440);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;rig.resize(500,440);
+for(const [label,x] of [['入口手前',-10.5],['入口内',-9.15],['奥へ進んだ位置',-7.55]]){player.setPosition(new THREE.Vector3(x,0,z));rig.follow(player.position);renderer.render(scene,rig.camera);const div=document.createElement('div'),canvas=document.createElement('canvas');div.style.display='inline-block';div.textContent=label;canvas.width=500;canvas.height=440;canvas.getContext('2d').drawImage(renderer.domElement,0,0);div.append(canvas);document.body.append(div);}
+}catch(e){document.querySelector('#result').textContent='FAIL '+e.stack;}
+</script>

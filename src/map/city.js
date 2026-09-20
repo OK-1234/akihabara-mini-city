@@ -10,6 +10,8 @@ import {applyCityAppearance,addCityGreenery} from './city-appearance.js';
 export const CITY_BUILDINGS=[
   ...BUILDING_VOLUMES.map((b,i)=>({...b,tone:i%2?'cool':'white',
     height:b.id==='support'?6.2:b.id==='udx'?9:b.height,
+    depth:b.id==='support'?2.3:b.depth,
+    z:b.id==='support'?b.z+.35:b.z,
     greenRoof:false,
     windowLevels:b.id==='support'?[2.75,4.05,5.35]:[2.75,3.95],
     roadSide:b.id==='yodobashi'?1:-1})),

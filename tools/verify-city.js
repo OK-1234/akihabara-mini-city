@@ -12,7 +12,7 @@ try {
  for(const b of BUILDING_VOLUMES) {
   const g=city.root.getObjectByName(b.id),p=g.getObjectByName(b.id+':body').geometry.parameters;
   const adopted=CITY_BUILDINGS.find(c=>c.id===b.id);
-  check(g.position.x===b.x&&g.position.z===b.z&&p.width===b.width&&p.depth===b.depth&&p.height===adopted.height,'original footprint and adopted height '+b.id);
+  check(g.position.x===adopted.x&&g.position.z===adopted.z&&p.width===adopted.width&&p.depth===adopted.depth&&p.height===adopted.height-(b.id==='support'?2.2:0),'adopted footprint and upper volume '+b.id);
  }
  const bounds=city.boxes.map(m=>new THREE.Box3().setFromObject(m,true));
  for(let i=0;i<bounds.length;i++) {

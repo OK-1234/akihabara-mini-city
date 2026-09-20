@@ -130,7 +130,23 @@ export function applyCityAppearance(root,bodies,configs,scene) {
     roofGarden(group,b,b.id==='support'?'E':['A','B','C','D','E','F'][i%6]);
     if(b.id==='support') {
       box(group,.18,b.height,.12,-b.width/2+.15,b.height/2,b.depth/2+.025,GRAY,'support-vertical-frame');
-      const canopy=details.getObjectByName('emphasized-canopy');canopy.scale.x=1.18;
+      // Street-facing west elevation: retain upper floors, physically cut out the ground floor.
+      const entranceHeight=2.2,opening=1.5,wallDepth=b.depth-opening;
+      body.geometry.dispose();body.geometry=new THREE.BoxGeometry(b.width,b.height-entranceHeight,b.depth);
+      body.position.y=entranceHeight+(b.height-entranceHeight)/2;
+      // Retire the old surface-mounted doors, frames and canopies at ground level only.
+      for(const mesh of [...details.children])if(mesh.position.y<entranceHeight)mesh.removeFromParent();
+      const side=box(group,b.width,entranceHeight,wallDepth,0,entranceHeight/2,b.depth/2-wallDepth/2,0xe8ecec,'support-entrance-screen-wall');
+      side.material=body.material;
+      const back=box(group,.18,entranceHeight,opening,b.width/2-.09,entranceHeight/2,-wallDepth/2,0xe8ecec,'support-entrance-back');back.material=body.material;
+      const jamb=box(group,b.width,entranceHeight,.08,0,entranceHeight/2,-b.depth/2+.04,0xe8ecec,'support-entrance-north-wall');jamb.material=body.material;
+      // Entering from the west, the north inner wall is on the visitor's left.
+      const signZ=-b.depth/2+.10;
+      box(group,.56,1.02,.035,-.88,1.17,signZ,0xf3f4f0,'support-floor-directory');
+      for(let i=0;i<4;i++)box(group,.39,.025,.008,-.88,1.46-i*.19,signZ+.022,0x93a3ac,'support-directory-line');
+      box(group,b.width-.18,.025,opening-.08,-.09,.018,-wallDepth/2+.04,0xcdd4d5,'support-recess-floor');
+      box(group,.32,.14,opening+.12,-b.width/2-.08,entranceHeight+.07,-wallDepth/2,WHITE,'support-recess-canopy');
+      group.userData.entrance={width:opening-.08,depth:b.width-.18,height:entranceHeight,screenWall:wallDepth};
     }
   });
   stationRoof(scene);
